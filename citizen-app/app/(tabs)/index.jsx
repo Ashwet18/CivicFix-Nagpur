@@ -1,3 +1,13 @@
+/**
+ * app/(tabs)/index.jsx
+ * Home screen — Stage 5 update
+ *
+ * Statistics and recent complaints are now derived from ComplaintsContext
+ * instead of hardcoded values. The UI design is unchanged.
+ *
+ * Data source: in-memory demo only (resets on app restart).
+ * Real backend integration is planned for Stage 5 backend wiring.
+ */
 import {
   View,
   Text,
@@ -7,37 +17,13 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
-// ── Sample placeholder data ──────────────────────────────────────────────────
-const RECENT_COMPLAINTS = [
-  {
-    id: '1',
-    category: 'Pothole',
-    description: 'Large pothole near Sitabuldi market',
-    status: 'In Progress',
-    date: '2026-10-20',
-  },
-  {
-    id: '2',
-    category: 'Garbage',
-    description: 'Overflowing dustbin at Civil Lines',
-    status: 'Submitted',
-    date: '2026-10-22',
-  },
-  {
-    id: '3',
-    category: 'Street Light',
-    description: 'Street light not working on Wardha Road',
-    status: 'Resolved',
-    date: '2026-10-18',
-  },
-];
+import { useComplaints, STATUS } from '../../context/complaints';
 
 // ── Status badge colour map ───────────────────────────────────────────────────
 const STATUS_COLORS = {
-  Submitted: { bg: '#E3F2FD', text: '#1565C0' },
-  'In Progress': { bg: '#FFF8E1', text: '#F57F17' },
-  Resolved: { bg: '#E8F5E9', text: '#2E7D32' },
+  [STATUS.SUBMITTED]:   { bg: '#E3F2FD', text: '#1565C0' },
+  [STATUS.IN_PROGRESS]: { bg: '#FFF8E1', text: '#F57F17' },
+  [STATUS.RESOLVED]:    { bg: '#E8F5E9', text: '#2E7D32' },
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -52,19 +38,23 @@ function WelcomeBanner() {
   );
 }
 
-function QuickStats() {
+/**
+ * Shows live counts derived from ComplaintsContext.
+ * @param {{ submitted:number, inProgress:number, resolved:number }} props
+ */
+function QuickStats({ submitted, inProgress, resolved }) {
   return (
     <View style={styles.statsRow}>
       <View style={[styles.statCard, { backgroundColor: '#E3F2FD' }]}>
-        <Text style={styles.statNumber}>2</Text>
+        <Text style={styles.statNumber}>{submitted}</Text>
         <Text style={styles.statLabel}>Submitted</Text>
       </View>
       <View style={[styles.statCard, { backgroundColor: '#FFF8E1' }]}>
-        <Text style={styles.statNumber}>1</Text>
+        <Text style={styles.statNumber}>{inProgress}</Text>
         <Text style={styles.statLabel}>In Progress</Text>
       </View>
       <View style={[styles.statCard, { backgroundColor: '#E8F5E9' }]}>
-        <Text style={styles.statNumber}>1</Text>
+        <Text style={styles.statNumber}>{resolved}</Text>
         <Text style={styles.statLabel}>Resolved</Text>
       </View>
     </View>
@@ -72,11 +62,13 @@ function QuickStats() {
 }
 
 function ComplaintCard({ item }) {
-  const colors = STATUS_COLORS[item.status] || STATUS_COLORS['Submitted'];
+  const colors = STATUS_COLORS[item.status] || STATUS_COLORS[STATUS.SUBMITTED];
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardCategory}>{item.category}</Text>
+        <Text style={styles.cardCategory}>
+          {item.categoryIcon ? `${item.categoryIcon} ${item.categoryLabel}` : item.category}
+        </Text>
         <View style={[styles.badge, { backgroundColor: colors.bg }]}>
           <Text style={[styles.badgeText, { color: colors.text }]}>
             {item.status}
@@ -84,7 +76,7 @@ function ComplaintCard({ item }) {
         </View>
       </View>
       <Text style={styles.cardDescription} numberOfLines={2}>
-        {item.description}
+        {item.title || item.description}
       </Text>
       <Text style={styles.cardDate}>Reported: {item.date}</Text>
     </View>
@@ -94,6 +86,16 @@ function ComplaintCard({ item }) {
 // ── Main Home Screen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter();
+  const { complaints } = useComplaints();
+
+  // ── Derive stats from live context data ─────────────────────────────────
+  const submitted   = complaints.filter((c) => c.status === STATUS.SUBMITTED).length;
+  const inProgress  = complaints.filter((c) => c.status === STATUS.IN_PROGRESS).length;
+  const resolved    = complaints.filter((c) => c.status === STATUS.RESOLVED).length;
+
+  // ── Most recent 3 complaints for the preview list ───────────────────────
+  // complaints[] is ordered newest-first (addComplaint prepends)
+  const recentComplaints = complaints.slice(0, 3);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,31 +113,63 @@ export default function HomeScreen() {
           <Text style={styles.reportButtonText}>＋  Report an Issue</Text>
         </TouchableOpacity>
 
-        {/* Quick stats */}
+        {/* Quick stats — live from context */}
         <Text style={styles.sectionTitle}>My Activity</Text>
-        <QuickStats />
+        <QuickStats
+          submitted={submitted}
+          inProgress={inProgress}
+          resolved={resolved}
+        />
 
-        {/* Recent complaints list */}
+        {/* Demo data notice */}
+        <View style={styles.demoNotice}>
+          <Text style={styles.demoNoticeText}>
+            ⚠ Stats reflect in-memory demo data only — resets on app restart
+          </Text>
+        </View>
+
+        {/* Recent complaints list — live from context */}
         <Text style={styles.sectionTitle}>Recent Complaints</Text>
-        {RECENT_COMPLAINTS.map((item) => (
-          <ComplaintCard key={item.id} item={item} />
-        ))}
+
+        {recentComplaints.length === 0 ? (
+          <View style={styles.emptyRecent}>
+            <Text style={styles.emptyRecentText}>
+              No complaints yet. Tap "Report an Issue" to get started.
+            </Text>
+          </View>
+        ) : (
+          recentComplaints.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => router.push(`/complaint/${item.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`View complaint ${item.id}`}
+              activeOpacity={0.8}
+            >
+              <ComplaintCard item={item} />
+            </TouchableOpacity>
+          ))
+        )}
 
         {/* View all link */}
-        <TouchableOpacity
-          style={styles.viewAllButton}
-          onPress={() => router.push('/(tabs)/complaints')}
-          accessibilityRole="button"
-          accessibilityLabel="View all my complaints"
-        >
-          <Text style={styles.viewAllText}>View All Complaints →</Text>
-        </TouchableOpacity>
+        {complaints.length > 0 && (
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => router.push('/(tabs)/complaints')}
+            accessibilityRole="button"
+            accessibilityLabel="View all my complaints"
+          >
+            <Text style={styles.viewAllText}>
+              View All {complaints.length} Complaints →
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Styles (unchanged from original design) ───────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -193,7 +227,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 10,
     gap: 10,
   },
   statCard: {
@@ -212,6 +246,18 @@ const styles = StyleSheet.create({
     color: '#555',
     marginTop: 4,
     textAlign: 'center',
+  },
+  // Demo notice
+  demoNotice: {
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 22,
+  },
+  demoNoticeText: {
+    fontSize: 11,
+    color: '#795548',
   },
   // Complaint card
   card: {
@@ -235,6 +281,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#1565C0',
+    flex: 1,
+    marginRight: 8,
   },
   badge: {
     borderRadius: 20,
@@ -254,6 +302,23 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 11,
     color: '#999',
+  },
+  // Empty recent
+  emptyRecent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+  },
+  emptyRecentText: {
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   // View all
   viewAllButton: {
