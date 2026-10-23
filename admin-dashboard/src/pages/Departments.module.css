@@ -1,0 +1,139 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.intro {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  background: #fff;
+  border-radius: 8px;
+  padding: 14px 18px;
+  border-left: 4px solid #1565C0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Department card */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: box-shadow 0.15s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shortCode {
+  background: #E3F2FD;
+  color: #1565C0;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.deptName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #212121;
+  line-height: 1.4;
+}
+
+/* Stats */
+.statsRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.statVal {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.statDivider {
+  width: 1px;
+  height: 36px;
+  background: #e0e0e0;
+}
+
+/* Category tags */
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.catTag {
+  background: #F3E5F5;
+  color: #6A1B9A;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* Contact */
+.contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.contactIcon {
+  color: #888;
+  font-size: 14px;
+}
+
+.contactText {
+  font-size: 12px;
+  color: #666;
+  word-break: break-all;
+}
+
+.mockNote {
+  font-size: 12px;
+  color: #F57F17;
+  background: #FFF8E1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
