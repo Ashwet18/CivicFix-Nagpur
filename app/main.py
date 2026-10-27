@@ -5,7 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Dict
 from app.db.session import get_db
-from app.api.routes import issues_router
+from app.api.routes import issues_router, ml_router
 
 app = FastAPI(
     title="CivicFix-Nagpur API",
@@ -19,6 +19,7 @@ app = FastAPI(
 
 # Register API routers
 app.include_router(issues_router)
+app.include_router(ml_router)
 
 
 @app.get("/", response_model=Dict[str, str])

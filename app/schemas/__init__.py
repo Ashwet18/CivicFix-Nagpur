@@ -7,11 +7,27 @@ from app.schemas.issue import (
     IssueResponse,
     IssueListResponse
 )
+from app.schemas.ml_predictions import (
+    ClassificationPrediction,
+    SeverityPrediction,
+    DuplicateDetection,
+    DuplicateCandidate,
+    ClassifyRequest,
+    PredictSeverityRequest,
+    DetectDuplicatesRequest
+)
 
 __all__ = [
     "IssueCreate",
     "IssueUpdate",
     "IssueStatusUpdate",
     "IssueResponse",
-    "IssueListResponse"
+    "IssueListResponse",
+    "ClassificationPrediction",
+    "SeverityPrediction",
+    "DuplicateDetection",
+    "DuplicateCandidate",
+    "ClassifyRequest",
+    "PredictSeverityRequest",
+    "DetectDuplicatesRequest"
 ]

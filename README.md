@@ -14,9 +14,9 @@ Citizens often struggle to report civic issues effectively, and municipal author
 
 ### Key Features
 - **Issue Reporting**: Citizens can report civic issues with descriptions, images, and location data
-- **AI-Powered Classification**: Automatic categorization of issues (roads, sanitation, electricity, water, etc.)
+- **AI-Powered Classification**: Automatic categorization of issues using a local Ollama model — no API key required (roads, sanitation, electricity, water, etc.)
 - **Severity Estimation**: ML-based severity assessment to prioritize critical issues
-- **Duplicate Detection**: Intelligent detection of similar/duplicate issue reports
+- **Duplicate Detection**: Intelligent detection of similar/duplicate issue reports using location and text similarity
 - **Resolution Tracking**: Real-time tracking of issue status and resolution progress
 - **Admin Dashboard**: Management interface for municipal authorities
 - **Analytics**: Insights and trends in civic issue reporting and resolution
@@ -100,9 +100,18 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 Copy-Item .env.example .env
+# Edit .env if Ollama runs on a non-default URL (default: http://localhost:11434)
+
+# Start the Ollama server and pull the classification model (one-time setup)
+# 1. Install Ollama: https://ollama.com/download
+# 2. ollama pull qwen2.5:3b
+# 3. ollama serve
+
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 API available at http://localhost:8000 | Swagger docs: http://localhost:8000/docs
+
+**Configuration**: See `.env.example` for all options. See [AI Classification Documentation](docs/AI_CLASSIFICATION.md) for Ollama setup details.
 
 ### Citizen App (Dev2)
 ```powershell
@@ -127,6 +136,15 @@ Opens at http://localhost:5174
 |--------|-----------|--------------------------------|
 | GET    | `/`       | Welcome message and API status |
 | GET    | `/health` | Health check for monitoring    |
+
+### ML Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/ml/classify` | Classify complaint category using local Ollama AI |
+| POST | `/api/v1/ml/predict-severity` | Predict issue severity (ML model) |
+| POST | `/api/v1/ml/detect-duplicates` | Find duplicate complaints using location and text similarity |
+
+**See [AI Classification Documentation](docs/AI_CLASSIFICATION.md) for Ollama setup and API details.**
 
 ### Planned Endpoints (Dev1)
 - `POST /api/v1/issues` — Create a new issue report
@@ -166,12 +184,27 @@ Opens at http://localhost:5174
 ## Running Tests
 
 ```powershell
-# Backend tests
+# Backend tests (no Ollama server or API key needed — all tests use mocks)
 pytest
+
+# Run specific test modules
+pytest tests/test_ai_classification.py -v   # 41 Ollama classification tests
+pytest tests/test_duplicate_detection.py -v # 22 duplicate detection tests
 
 # With coverage
 pytest --cov=app --cov=ml
 ```
+
+## AI Classification Evaluation
+
+Requires Ollama to be running with `qwen2.5:3b` pulled. Makes real model calls.
+
+```powershell
+# Ensure Ollama is running: ollama serve
+python -m ml.evaluation.evaluate_classification
+```
+
+See [AI Classification Documentation](docs/AI_CLASSIFICATION.md) for full setup and troubleshooting.
 
 ## License
 [To be determined]

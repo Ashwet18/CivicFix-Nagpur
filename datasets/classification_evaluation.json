@@ -1,0 +1,177 @@
+[
+  {
+    "id": 1,
+    "title": "Large pothole on MG Road near City Mall",
+    "description": "There is a huge pothole on MG Road near City Mall traffic signal. It's about 2 feet wide and 6 inches deep. Multiple vehicles have been damaged due to this.",
+    "expected_category": "road_damage",
+    "notes": "Clear road damage case with specific details"
+  },
+  {
+    "id": 2,
+    "title": "Garbage not collected for 5 days",
+    "description": "Municipal garbage collection truck has not arrived in our area for the past 5 days. Waste is piling up on the street creating unhygienic conditions and foul smell.",
+    "expected_category": "garbage",
+    "notes": "Clear waste management issue"
+  },
+  {
+    "id": 3,
+    "title": "Water pipe burst on Station Road",
+    "description": "Underground water pipeline has burst near Station Road railway crossing. Continuous water leakage is flooding the entire street. Residents are facing water supply disruption.",
+    "expected_category": "water_supply",
+    "notes": "Water supply infrastructure issue"
+  },
+  {
+    "id": 4,
+    "title": "Blocked drain causing waterlogging",
+    "description": "The drainage system on Civil Lines is completely blocked with debris and plastic. During monsoon, entire street gets flooded with water accumulation up to 1 foot.",
+    "expected_category": "drainage",
+    "notes": "Drainage and flooding issue"
+  },
+  {
+    "id": 5,
+    "title": "Street light not working on Highway",
+    "description": "Street light pole number 45 on Wardha Road Highway has not been working for 2 weeks. Area becomes very dark at night causing safety concerns.",
+    "expected_category": "streetlight",
+    "notes": "Street lighting malfunction"
+  },
+  {
+    "id": 6,
+    "title": "Electrical wire hanging dangerously",
+    "description": "High voltage electrical wire is hanging loose from pole near Sitabuldi square. This is creating serious safety hazard for pedestrians and vehicles.",
+    "expected_category": "electricity",
+    "notes": "Electrical safety hazard"
+  },
+  {
+    "id": 7,
+    "title": "Public toilet in deplorable condition",
+    "description": "Public toilet at Kasturchand Park is extremely dirty and non-functional. Water supply is cut, and there is no cleaning done for weeks.",
+    "expected_category": "sanitation",
+    "notes": "Public sanitation facility issue"
+  },
+  {
+    "id": 8,
+    "title": "Broken footpath causing accidents",
+    "description": "Footpath near Empress Mall is completely broken with sharp concrete edges protruding. Several pedestrians have suffered injuries including elderly people.",
+    "expected_category": "public_safety",
+    "notes": "Public safety hazard"
+  },
+  {
+    "id": 9,
+    "title": "Road surface cracking on bypass",
+    "description": "The new bypass road surface is developing cracks and breaking apart. The tar coating is peeling off exposing the base layer.",
+    "expected_category": "road_damage",
+    "notes": "Road deterioration issue"
+  },
+  {
+    "id": 10,
+    "title": "Illegal dumping of construction waste",
+    "description": "Someone is illegally dumping construction debris and waste material on the vacant plot near our society. This needs immediate attention and removal.",
+    "expected_category": "garbage",
+    "notes": "Illegal waste dumping"
+  },
+  {
+    "id": 11,
+    "title": "Low water pressure in supply",
+    "description": "For the past week, water supply pressure is very low in our area. Water barely reaches upper floors of buildings during morning and evening hours.",
+    "expected_category": "water_supply",
+    "notes": "Water supply pressure issue"
+  },
+  {
+    "id": 12,
+    "title": "Manhole cover missing creating danger",
+    "description": "Sewage manhole cover on Ambazari Road is missing for 3 days. The open manhole is extremely dangerous especially during night. A child almost fell into it.",
+    "expected_category": "drainage",
+    "notes": "Could be drainage or public_safety, drainage is more specific"
+  },
+  {
+    "id": 13,
+    "title": "Multiple street lights flickering",
+    "description": "All street lights in our lane keep flickering and switching off randomly. This has been happening for 10 days. Need electrical inspection.",
+    "expected_category": "streetlight",
+    "notes": "Street light electrical issue"
+  },
+  {
+    "id": 14,
+    "title": "Power transformer making loud noise",
+    "description": "Electricity transformer near our building is making loud buzzing noise and getting very hot. Residents are worried it might explode. Urgent inspection required.",
+    "expected_category": "electricity",
+    "notes": "Electrical infrastructure safety"
+  },
+  {
+    "id": 15,
+    "title": "Overflowing septic tank",
+    "description": "Public septic tank at bus stand is overflowing with sewage. The smell is unbearable and sewage water is spreading on the road.",
+    "expected_category": "sanitation",
+    "notes": "Sewage and sanitation issue"
+  },
+  {
+    "id": 16,
+    "title": "Stray dogs attacking pedestrians",
+    "description": "Pack of stray dogs near Futala Lake are aggressively attacking morning walkers and joggers. Multiple people have been bitten. Need animal control intervention.",
+    "expected_category": "public_safety",
+    "notes": "Public safety concern with animals"
+  },
+  {
+    "id": 17,
+    "title": "Speed breaker too high causing vehicle damage",
+    "description": "Speed breaker on VIP Road is extremely high and poorly marked. Many vehicles are getting damaged. It needs to be reconstructed to proper height.",
+    "expected_category": "road_damage",
+    "notes": "Road infrastructure issue"
+  },
+  {
+    "id": 18,
+    "title": "Wet garbage bin overflowing daily",
+    "description": "Wet waste collection bin at our society gate is overflowing every day. Municipal workers are not emptying it regularly. Attracting flies and rats.",
+    "expected_category": "garbage",
+    "notes": "Waste collection frequency issue"
+  },
+  {
+    "id": 19,
+    "title": "Water meter reading incorrect",
+    "description": "Our water meter is showing unusually high reading this month but our consumption has been normal. Need inspection of meter accuracy.",
+    "expected_category": "water_supply",
+    "notes": "Water supply billing/metering issue"
+  },
+  {
+    "id": 20,
+    "title": "Park maintenance needed",
+    "description": "Local park has overgrown grass, broken benches, and no working lights. The playground equipment is rusty and unsafe for children.",
+    "expected_category": "other",
+    "notes": "General municipal maintenance not fitting specific categories"
+  },
+  {
+    "id": 21,
+    "title": "Traffic signal malfunction",
+    "description": "Traffic light at Seminary Hills junction is not working properly. Signal stays red for too long causing huge traffic congestion.",
+    "expected_category": "other",
+    "notes": "Traffic management issue, not specific infrastructure"
+  },
+  {
+    "id": 22,
+    "title": "Broken pavement tiles causing trip hazard",
+    "description": "Pavement tiles on main road near Kasturchand Park are broken and uneven. Many elderly citizens have tripped and fallen.",
+    "expected_category": "public_safety",
+    "notes": "Pedestrian safety hazard"
+  },
+  {
+    "id": 23,
+    "title": "Sewage water mixing with drinking water",
+    "description": "Complaint about contaminated drinking water in our area. Sewage seems to be mixing with main water supply line. Many people falling sick.",
+    "expected_category": "water_supply",
+    "notes": "Critical water contamination issue"
+  },
+  {
+    "id": 24,
+    "title": "Road divider damaged in accident",
+    "description": "Concrete road divider was damaged in recent accident on Outer Ring Road. Sharp broken concrete pieces are creating hazard for two-wheelers.",
+    "expected_category": "road_damage",
+    "notes": "Road safety infrastructure damage"
+  },
+  {
+    "id": 25,
+    "title": "Mosquito breeding in stagnant water",
+    "description": "Stagnant rainwater has accumulated in low-lying area near our locality. Mosquito breeding is causing dengue and malaria concerns.",
+    "expected_category": "drainage",
+    "notes": "Water stagnation and drainage issue"
+  }
+]

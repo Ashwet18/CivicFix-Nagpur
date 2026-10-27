@@ -1,0 +1,91 @@
+{
+  "accuracy": 1.0,
+  "correct": 25,
+  "evaluated": 25,
+  "skipped": 0,
+  "total": 25,
+  "category_metrics": {
+    "road_damage": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 4,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0
+    },
+    "garbage": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 3,
+      "tp": 3,
+      "fp": 0,
+      "fn": 0
+    },
+    "water_supply": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 4,
+      "tp": 4,
+      "fp": 0,
+      "fn": 0
+    },
+    "drainage": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 3,
+      "tp": 3,
+      "fp": 0,
+      "fn": 0
+    },
+    "streetlight": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 2,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0
+    },
+    "electricity": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 2,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0
+    },
+    "sanitation": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 2,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0
+    },
+    "public_safety": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 3,
+      "tp": 3,
+      "fp": 0,
+      "fn": 0
+    },
+    "other": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "count": 2,
+      "tp": 2,
+      "fp": 0,
+      "fn": 0
+    }
+  },
+  "errors": []
+}

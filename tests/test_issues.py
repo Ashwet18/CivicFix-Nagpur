@@ -1,64 +1,14 @@
 """Tests for issue API endpoints."""
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, delete
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from app.main import app
-from app.db.session import get_db
-from app.db.base import Base
-from app.models.issue import Issue
-
-# Create in-memory SQLite database for testing
-SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
-
-test_engine = create_engine(
-    SQLALCHEMY_TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-
-TestingSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=test_engine
-)
-
-# Create tables
-Base.metadata.create_all(bind=test_engine)
-
-
-def override_get_db():
-    """Override get_db dependency for testing."""
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# Override dependency
-app.dependency_overrides[get_db] = override_get_db
-
-# Create test client
-client = TestClient(app)
-
-
-@pytest.fixture(autouse=True, scope="function")
-def clean_database():
-    """Clean database before each test."""
-    db = TestingSessionLocal()
-    try:
-        # Use SQLAlchemy 2.x delete syntax
-        db.execute(delete(Issue))
-        db.commit()
-    except Exception:
-        db.rollback()
-    finally:
-        db.close()
-    yield
+# ---------------------------------------------------------------------------
+# All DB wiring (engine, session, override, clean_database fixture, client)
+# comes from the shared conftest.py.  Importing them here makes them
+# available as module-level names so the test classes below can use `client`
+# directly without changes.
+# ---------------------------------------------------------------------------
+from tests.conftest import client, TestingSessionLocal  # noqa: F401
 
 
 class TestCreateIssue:

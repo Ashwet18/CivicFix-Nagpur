@@ -2,9 +2,19 @@
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 
+# Database
+sqlalchemy>=2.0.0
+psycopg[binary]>=3.1.0
+alembic>=1.12.0
+
 # Environment Configuration
 python-dotenv>=1.0.0
 
+# Machine Learning
+scikit-learn>=1.3.0
+
+# HTTP client — used by the local Ollama classification service
+httpx>=0.25.0
+
 # Testing
 pytest>=7.4.0
-httpx>=0.25.0

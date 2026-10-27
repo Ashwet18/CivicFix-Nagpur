@@ -54,7 +54,7 @@ class IssueCreate(BaseModel):
                 {
                     "title": "Pothole on Main Street",
                     "description": "Large pothole near traffic light causing vehicle damage",
-                    "category": "roads",
+                    "category": "road_damage",
                     "severity": "high",
                     "latitude": 21.1458,
                     "longitude": 79.0882
@@ -165,7 +165,7 @@ class IssueResponse(BaseModel):
                     "title": "Pothole on Main Street",
                     "description": "Large pothole near traffic light causing vehicle damage",
                     "status": "reported",
-                    "category": "roads",
+                    "category": "road_damage",
                     "severity": "high",
                     "latitude": 21.1458,
                     "longitude": 79.0882,
@@ -196,7 +196,7 @@ class IssueListResponse(BaseModel):
                             "title": "Pothole on Main Street",
                             "description": "Large pothole near traffic light",
                             "status": "reported",
-                            "category": "roads",
+                            "category": "road_damage",
                             "severity": "high",
                             "latitude": 21.1458,
                             "longitude": 79.0882,

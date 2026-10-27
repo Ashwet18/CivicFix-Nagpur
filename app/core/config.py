@@ -1,7 +1,6 @@
 """Application configuration management."""
 
 import os
-from typing import Optional
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -37,6 +36,20 @@ class Settings:
     # ML Models
     MODEL_PATH: str = os.getenv("MODEL_PATH", "./ml/models")
     
+    # Local AI Classification (Ollama)
+    # Classification uses a locally running Ollama model — no API key required.
+    # Install Ollama: https://ollama.com/download
+    # Pull model:    ollama pull qwen2.5:3b
+    # Start server:  ollama serve
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+    OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", "30"))
+
+    # Duplicate Detection
+    DUPLICATE_SEARCH_RADIUS_METERS: int = int(
+        os.getenv("DUPLICATE_SEARCH_RADIUS_METERS", "20")
+    )
+
     @property
     def is_development(self) -> bool:
         """Check if running in development mode."""

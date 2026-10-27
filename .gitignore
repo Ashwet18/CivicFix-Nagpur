@@ -66,6 +66,9 @@ datasets/*.txt
 datasets/*.zip
 datasets/*.tar.gz
 !datasets/README.md
+# Small JSON evaluation datasets (< 1 MB) are committed as versioned source data
+!datasets/classification_evaluation.json
+!datasets/evaluation_results.json
 
 # ── Node.js / Frontend (Dev2) ─────────────────────────────────────────────────
 node_modules/
