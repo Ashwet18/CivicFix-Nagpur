@@ -2,7 +2,7 @@
  * components/LocationPicker.jsx
  *
  * Requests the device's GPS location when the citizen taps the button.
- * Uses expo-location (SDK 53 compatible, v18.x).
+ * Uses expo-location.
  *
  * States handled:
  *   idle          — user has not requested location yet
@@ -12,8 +12,7 @@
  *   unavailable   — location services off or timed out
  *   error         — unexpected failure
  *
- * NOTE: Coordinates are only used locally to populate the complaint form.
- * They are NOT sent to any server. Transmission will be wired in Stage 4.
+ * Coordinates are included in the issue request when a report is submitted.
  * No coordinates are fabricated or assumed.
  */
 import { useState } from 'react';
@@ -145,7 +144,7 @@ export default function LocationPicker({ location, onLocation, disabled = false 
         </Text>
       )}
       <Text style={styles.coordNotice}>
-        Coordinates stored locally only — not transmitted until Stage 4
+        Coordinates will be shared with the community when you submit this report.
       </Text>
     </View>
   );

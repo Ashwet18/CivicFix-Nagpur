@@ -103,10 +103,16 @@ export default function RegisterScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Create Account</Text>
           <Text style={styles.cardSubtitle}>
-            Register to report and track civic issues in Nagpur.
+            Create a local demo session. The backend does not currently provide account registration.
           </Text>
 
-          {/* Server / mock error banner */}
+          <View style={styles.mockHint} accessibilityRole="alert">
+            <Text style={styles.mockHintText}>
+              No account will be created or password sent to the server. Do not use a real password.
+            </Text>
+          </View>
+
+          {/* Demo error banner */}
           {!!authError && (
             <View style={styles.errorBanner} accessibilityRole="alert">
               <Text style={styles.errorBannerText}>⚠ {authError}</Text>
@@ -175,13 +181,13 @@ export default function RegisterScreen() {
             onPress={handleRegister}
             disabled={isLoading}
             accessibilityRole="button"
-            accessibilityLabel="Create your CivicFix account"
+            accessibilityLabel="Create a local demo session"
             accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             {isLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.primaryButtonText}>Create Account</Text>
+              <Text style={styles.primaryButtonText}>Create Demo Session</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -250,6 +256,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     marginBottom: 20,
+    lineHeight: 18,
+  },
+  mockHint: {
+    backgroundColor: '#FFF8E1',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+  },
+  mockHintText: {
+    fontSize: 12,
+    color: '#795548',
     lineHeight: 18,
   },
 

@@ -1,29 +1,30 @@
 /**
  * app/complaint/[id].jsx
- * Stage 4 — Complaint Detail screen
+ * Community issue detail screen
  *
- * Reads complaint id from the URL param, looks it up in ComplaintsContext,
- * and renders full details: metadata, photo, location, status timeline,
- * and resolution info.
+ * Reads the backend issue ID from the URL and fetches the issue from the API.
  */
 import {
   View, Text, StyleSheet, ScrollView,
-  Image, SafeAreaView, TouchableOpacity,
+  Image, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useComplaints, STATUS } from '../../context/complaints';
 import Colors from '../../constants/colors';
 
 // ── Status styling ────────────────────────────────────────────────────────────
 const STATUS_STYLE = {
-  [STATUS.SUBMITTED]:   { bg: '#E3F2FD', text: '#1565C0', dot: '#1565C0' },
+  [STATUS.REPORTED]:    { bg: '#E3F2FD', text: '#1565C0', dot: '#1565C0' },
+  [STATUS.ACKNOWLEDGED]: { bg: '#EDE7F6', text: '#5E35B1', dot: '#5E35B1' },
   [STATUS.IN_PROGRESS]: { bg: '#FFF8E1', text: '#F57F17', dot: '#F57F17' },
   [STATUS.RESOLVED]:    { bg: '#E8F5E9', text: '#2E7D32', dot: '#2E7D32' },
+  [STATUS.REJECTED]:    { bg: '#FFEBEE', text: '#C62828', dot: '#C62828' },
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 function StatusBadge({ status, large = false }) {
-  const s = STATUS_STYLE[status] || STATUS_STYLE[STATUS.SUBMITTED];
+  const s = STATUS_STYLE[status] || STATUS_STYLE[STATUS.REPORTED];
   return (
     <View style={[styles.badge, { backgroundColor: s.bg }, large && styles.badgeLarge]}>
       <Text style={[styles.badgeText, { color: s.text }, large && styles.badgeTextLarge]}>
@@ -52,37 +53,14 @@ function Section({ title, children }) {
   );
 }
 
-function TimelineItem({ entry, isLast }) {
-  const s = STATUS_STYLE[entry.status] || STATUS_STYLE[STATUS.SUBMITTED];
-  return (
-    <View style={styles.timelineItem}>
-      {/* Dot + line */}
-      <View style={styles.timelineLeft}>
-        <View style={[styles.timelineDot, { backgroundColor: s.dot }]} />
-        {!isLast && <View style={styles.timelineLine} />}
-      </View>
-      {/* Content */}
-      <View style={styles.timelineContent}>
-        <View style={styles.timelineHeader}>
-          <StatusBadge status={entry.status} />
-          <Text style={styles.timelineDate}>{entry.date}</Text>
-        </View>
-        {!!entry.note && (
-          <Text style={styles.timelineNote}>{entry.note}</Text>
-        )}
-      </View>
-    </View>
-  );
-}
-
 // ── Not found state ───────────────────────────────────────────────────────────
-function NotFound({ id, onBack }) {
+function NotFound({ id, onBack, message }) {
   return (
     <View style={styles.notFound}>
       <Text style={styles.notFoundIcon}>🔍</Text>
       <Text style={styles.notFoundTitle}>Complaint Not Found</Text>
       <Text style={styles.notFoundText}>
-        No complaint with ID "{id}" exists in this session.
+        {message ?? `No community report with ID "${id}" was found.`}
       </Text>
       <TouchableOpacity style={styles.backBtn} onPress={onBack} accessibilityRole="button">
         <Text style={styles.backBtnText}>← Go Back</Text>
@@ -91,35 +69,152 @@ function NotFound({ id, onBack }) {
   );
 }
 
+function RequestState({ loading, error, onRetry, onBack }) {
+  if (loading) {
+    return (
+      <View style={styles.requestState}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.requestText}>Loading report…</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.requestState}>
+      <Text style={styles.notFoundIcon}>{error?.status === 404 ? '🔍' : '⚠️'}</Text>
+      <Text style={styles.notFoundTitle}>
+        {error?.status === 404 ? 'Complaint Not Found' : 'Could Not Load Report'}
+      </Text>
+      <Text style={styles.notFoundText}>
+        {error?.status === 404
+          ? error.message
+          : error?.message ?? 'Please check your connection and try again.'}
+      </Text>
+      {error?.status !== 404 && (
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={onRetry}
+          accessibilityRole="button"
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={onBack}
+        accessibilityRole="button"
+      >
+        <Text style={styles.backBtnText}>← Go Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function ComplaintDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id: routeId } = useLocalSearchParams();
   const { getById } = useComplaints();
   const router = useRouter();
-  const complaint = getById(id);
+  const requestIdRef = useRef(0);
+  const hasComplaintRef = useRef(false);
+  const id = Array.isArray(routeId) ? routeId[0] : routeId;
+  const numericId = typeof id === 'string' && /^\d+$/.test(id) ? Number(id) : NaN;
+  const validId = Number.isSafeInteger(numericId) && numericId > 0;
+  const [complaint, setComplaint] = useState(null);
+  const [loading, setLoading] = useState(validId);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
-  if (!complaint) {
+  const loadIssue = useCallback(async () => {
+    if (!validId) return;
+
+    const requestId = ++requestIdRef.current;
+    const hasComplaint = hasComplaintRef.current;
+    setLoading(!hasComplaint);
+    setRefreshing(hasComplaint);
+    setError(null);
+    try {
+      const issue = await getById(numericId);
+      if (requestId === requestIdRef.current) {
+        setComplaint(issue);
+        hasComplaintRef.current = true;
+      }
+    } catch (requestError) {
+      if (requestId === requestIdRef.current) setError(requestError);
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, [getById, numericId, validId]);
+
+  useEffect(() => {
+    if (!validId) return undefined;
+    loadIssue();
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [loadIssue, validId]);
+
+  if (!validId) {
     return (
       <SafeAreaView style={styles.container}>
-        <NotFound id={id} onBack={() => router.back()} />
+        <NotFound
+          id={id}
+          onBack={() => router.back()}
+          message="The report ID must be a positive integer."
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (loading || !complaint) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <RequestState
+          loading={loading}
+          error={error}
+          onRetry={loadIssue}
+          onBack={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
 
   const {
-    isSample, categoryIcon, categoryLabel, title, description,
-    status, date, assignedTo, location, photoUri,
-    timeline, resolutionNote, resolutionPhotoUri,
+    categoryIcon, categoryLabel, title, description,
+    status, date, location, photoUri,
   } = complaint;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={loadIssue}
+            colors={[Colors.primary]}
+          />
+        }
+      >
+        {!!error && (
+          <View style={styles.refreshError} accessibilityRole="alert">
+            <Text style={styles.refreshErrorText}>
+              Could not refresh this report. Showing the last loaded data. {error.message}
+            </Text>
+            <TouchableOpacity onPress={loadIssue} accessibilityRole="button">
+              <Text style={styles.refreshRetryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ── Header card ── */}
         <View style={styles.headerCard}>
           <View style={styles.headerTop}>
-            <Text style={styles.headerIcon}>{categoryIcon}</Text>
+            <Text style={styles.headerIcon}>{categoryIcon ?? '📌'}</Text>
             <View style={styles.headerMeta}>
               <Text style={styles.headerId}>{complaint.id}</Text>
               <Text style={styles.headerCategory}>{categoryLabel}</Text>
@@ -127,30 +222,22 @@ export default function ComplaintDetailScreen() {
             <StatusBadge status={status} large />
           </View>
           <Text style={styles.headerTitle}>{title}</Text>
-          {!isSample && (
-            <View style={styles.sessionTag}>
-              <Text style={styles.sessionTagText}>✦ Submitted this session (demo mode)</Text>
-            </View>
-          )}
-          {isSample && (
-            <View style={styles.sampleTag}>
-              <Text style={styles.sampleTagText}>📋 Sample data for demonstration</Text>
-            </View>
-          )}
         </View>
 
         {/* ── Details ── */}
         <Section title="Details">
           <View style={styles.detailCard}>
             <DetailRow label="Date Submitted" value={date} />
-            <DetailRow label="Assigned To"    value={assignedTo ?? 'Not yet assigned'} />
+            <DetailRow label="Assigned To"    value="Not provided by API" />
+            <DetailRow label="Severity" value={complaint.severity ?? 'Not provided'} />
             {location && (
               <DetailRow
                 label="Location"
-                value={`${location.latitude}, ${location.longitude}`}
+                value={`${location.latitude ?? '—'}, ${location.longitude ?? '—'}`}
                 mono
               />
             )}
+            {!location && <DetailRow label="Location" value="Not provided" />}
           </View>
         </Section>
 
@@ -172,27 +259,23 @@ export default function ComplaintDetailScreen() {
                 accessibilityLabel="Complaint photo evidence"
               />
               <Text style={styles.photoNote}>
-                📎 Stored locally only — not uploaded to server (Stage 5)
+                Image URL provided by the API.
               </Text>
             </View>
           ) : (
             <View style={styles.placeholderCard}>
               <Text style={styles.placeholderIcon}>🖼️</Text>
-              <Text style={styles.placeholderText}>No photo attached to this complaint.</Text>
+              <Text style={styles.placeholderText}>No image URL was provided by the API.</Text>
             </View>
           )}
         </Section>
 
-        {/* ── Status timeline ── */}
+        {/* ── Status history ── */}
         <Section title="Status History">
           <View style={styles.timelineCard}>
-            {timeline.map((entry, i) => (
-              <TimelineItem
-                key={`${entry.status}-${entry.date}-${i}`}
-                entry={entry}
-                isLast={i === timeline.length - 1}
-              />
-            ))}
+            <Text style={styles.timelineNote}>
+              The API provides the current status only. Status history is not available.
+            </Text>
           </View>
         </Section>
 
@@ -200,28 +283,9 @@ export default function ComplaintDetailScreen() {
         {status === STATUS.RESOLVED && (
           <Section title="Resolution">
             <View style={styles.resolutionCard}>
-              <Text style={styles.resolutionLabel}>Resolution Notes</Text>
               <Text style={styles.resolutionText}>
-                {resolutionNote ?? 'No resolution notes recorded.'}
+                Resolution notes and photos are not provided by the API.
               </Text>
-              <Text style={styles.resolutionLabel} style={{ marginTop: 14 }}>
-                Resolution Photo
-              </Text>
-              {resolutionPhotoUri ? (
-                <Image
-                  source={{ uri: resolutionPhotoUri }}
-                  style={styles.photo}
-                  resizeMode="cover"
-                  accessibilityLabel="Resolution photo"
-                />
-              ) : (
-                <View style={styles.placeholderCard}>
-                  <Text style={styles.placeholderIcon}>📷</Text>
-                  <Text style={styles.placeholderText}>
-                    Resolution photo not available.
-                  </Text>
-                </View>
-              )}
             </View>
           </Section>
         )}
@@ -237,6 +301,21 @@ export default function ComplaintDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll:    { padding: 16, paddingBottom: 40 },
+  refreshError: {
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#C62828',
+    padding: 12,
+    marginBottom: 12,
+  },
+  refreshErrorText: { fontSize: 13, color: '#C62828', lineHeight: 19 },
+  refreshRetryText: {
+    color: Colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 8,
+  },
 
   // Header card
   headerCard: {
@@ -353,6 +432,8 @@ const styles = StyleSheet.create({
 
   // Not found
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  requestState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  requestText: { marginTop: 12, color: Colors.textSecondary, fontSize: 14 },
   notFoundIcon:  { fontSize: 48, marginBottom: 16 },
   notFoundTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   notFoundText:  { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginBottom: 24 },
@@ -361,4 +442,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 24,
   },
   backBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginBottom: 12,
+  },
+  retryButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });

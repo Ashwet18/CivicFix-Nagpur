@@ -2,7 +2,7 @@
  * components/PhotoPicker.jsx
  *
  * Lets the citizen pick a photo from their gallery as evidence.
- * Uses expo-image-picker (SDK 53 compatible, v16.x).
+ * Uses expo-image-picker.
  *
  * States handled:
  *   idle          — no photo selected yet
@@ -10,8 +10,7 @@
  *   selected      — photo chosen, shows preview with remove/replace controls
  *
  * NOTE: The photo is held in local state only.
- * It is NOT uploaded to any server. Upload will be wired in Stage 4
- * when Dev1's complaint submission endpoint is confirmed.
+ * It is not uploaded to the API; the backend currently has no upload endpoint.
  */
 import { useState } from 'react';
 import {
@@ -136,7 +135,7 @@ export default function PhotoPicker({ photo, onPhoto, disabled = false }) {
           {/* Local-only notice */}
           <View style={styles.localNotice}>
             <Text style={styles.localNoticeText}>
-              📎 Photo stored locally only — not uploaded until Stage 4
+              📎 Photo stays on this device; photo upload is not supported.
             </Text>
           </View>
           {/* Controls */}
