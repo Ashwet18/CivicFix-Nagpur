@@ -7,12 +7,15 @@ import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-nati
 import Colors from '../constants/colors';
 
 export const CATEGORIES = [
-  { id: 'pothole',    label: 'Pothole',             icon: '🚧' },
-  { id: 'garbage',   label: 'Garbage',              icon: '🗑️' },
-  { id: 'streetlight', label: 'Damaged Streetlight', icon: '💡' },
-  { id: 'water',     label: 'Water Leakage',        icon: '💧' },
-  { id: 'drainage',  label: 'Drainage',             icon: '🌊' },
-  { id: 'other',     label: 'Other',                icon: '📌' },
+  { id: 'road_damage', label: 'Road Damage',        icon: '🚧' },
+  { id: 'garbage',     label: 'Garbage',            icon: '🗑️' },
+  { id: 'water_supply',label: 'Water Supply',       icon: '💧' },
+  { id: 'drainage',    label: 'Drainage',            icon: '🌊' },
+  { id: 'streetlight', label: 'Streetlight',         icon: '💡' },
+  { id: 'electricity', label: 'Electricity',         icon: '⚡' },
+  { id: 'sanitation',  label: 'Sanitation',          icon: '🚻' },
+  { id: 'public_safety', label: 'Public Safety',     icon: '⚠️' },
+  { id: 'other',       label: 'Other',               icon: '📌' },
 ];
 
 /**

@@ -1,16 +1,12 @@
 /**
  * context/auth.jsx
  *
- * ⚠️  DEVELOPMENT MOCK — NOT REAL AUTHENTICATION
+ * DEVELOPMENT DEMO — NOT BACKEND AUTHENTICATION
  *
- * This file provides a simple React context that holds the current user's
- * session state for UI development purposes only.
+ * This file holds a local, in-memory demo session for UI development only.
  *
- * HOW TO REPLACE IN STAGE 4:
- * 1. Replace the `login` function body with a real POST /auth/login call.
- * 2. Replace the `register` function body with a real POST /auth/register call.
- * 3. Replace AsyncStorage with a secure token store (e.g. expo-secure-store).
- * 4. Add token refresh logic and real error handling.
+ * The current backend has no authentication endpoints. Replace this context
+ * only after login and registration contracts are implemented server-side.
  * Everything that consumes this context (login screen, register screen,
  * header, etc.) will automatically use the real implementation.
  */
@@ -59,7 +55,7 @@ export function AuthProvider({ children }) {
   const clearAuthError = useCallback(() => setAuthError(null), []);
 
   // ── login ─────────────────────────────────────────────────────────────────
-  // TODO Stage 4: replace body with → POST /auth/login { email, password }
+  // Demo-only: this does not authenticate against the CivicFix backend.
   const login = useCallback(async (email, password) => {
     setIsLoading(true);
     setAuthError(null);
@@ -77,7 +73,9 @@ export function AuthProvider({ children }) {
 
       // Use the same generic message for both wrong email and wrong password
       // (don't reveal which one was wrong — basic security hygiene)
-      setAuthError('Invalid email or password. Try citizen@civicfix.dev / Demo@1234');
+      setAuthError(
+        'Invalid demo email or password. This local demo is not connected to server authentication.'
+      );
       return false;
     } catch (err) {
       setAuthError('Something went wrong. Please try again.');
@@ -88,14 +86,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   // ── register ──────────────────────────────────────────────────────────────
-  // TODO Stage 4: replace body with → POST /auth/register { name, email, password }
+  // Demo-only: this does not create an account on the CivicFix backend.
   const register = useCallback(async (name, email, _password) => {
     setIsLoading(true);
     setAuthError(null);
     try {
       await fakeDelay();
 
-      // Mock: treat any valid submission as success and auto-log-in
+      // This creates an in-memory demo session; it does not create an account.
       const newUser = {
         id: `mock-${Date.now()}`,
         name: name.trim(),

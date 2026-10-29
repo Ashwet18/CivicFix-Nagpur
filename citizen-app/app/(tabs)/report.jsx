@@ -5,9 +5,7 @@
  *
  * Collects: category, title, description, photo (optional), GPS (optional).
  * Validates required fields before showing a review summary.
- * Submission is a clearly-labelled LOCAL DEMO only — no data is sent to
- * any server. The submit handler is isolated so it can be replaced with
- * the real POST /complaints call in Stage 4 when Dev1's API is ready.
+ * Reports are submitted to the CivicFix API after the citizen reviews them.
  */
 
 import { useState, useRef } from 'react';
@@ -20,7 +18,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -41,9 +38,13 @@ function validate(category, title, description) {
   if (!title.trim())         errors.title       = 'Title is required.';
   else if (title.trim().length < 5)
                              errors.title       = 'Title must be at least 5 characters.';
+  else if (title.trim().length > 150)
+                             errors.title       = 'Title must be no more than 150 characters.';
   if (!description.trim())   errors.description = 'Description is required.';
   else if (description.trim().length < 10)
                              errors.description = 'Please describe the issue in at least 10 characters.';
+  else if (description.trim().length > 5000)
+                             errors.description = 'Description must be no more than 5000 characters.';
   return errors;
 }
 
@@ -76,8 +77,7 @@ function ReviewCard({ category, title, description, photo, location }) {
 
       <View style={styles.mockWarning}>
         <Text style={styles.mockWarningText}>
-          ⚠️  DEMO MODE — This report will NOT be sent to any server.{'\n'}
-          Real submission will be enabled in Stage 4 when the backend API is ready.
+          The selected photo stays on this device and will not be uploaded.
         </Text>
       </View>
     </View>
@@ -99,22 +99,21 @@ function Row({ label, value, multiline = false, valueColor }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Success card shown after mock submit
+// Success card shown after the API confirms submission.
 // ─────────────────────────────────────────────────────────────────────────────
 function SuccessCard({ newId, onReset, onViewComplaints, onViewDetail }) {
   return (
     <View style={styles.successCard}>
       <Text style={styles.successIcon}>✅</Text>
-      <Text style={styles.successTitle}>Report Submitted (Demo)</Text>
+      <Text style={styles.successTitle}>Report Submitted</Text>
       {newId && (
         <View style={styles.successIdBadge}>
           <Text style={styles.successIdText}>Reference ID: {newId}</Text>
         </View>
       )}
       <Text style={styles.successBody}>
-        Your complaint has been saved locally this session.{'\n\n'}
-        It will appear in My Complaints and can be viewed in detail.{'\n'}
-        Real server submission will be enabled in Stage 5.
+        The server accepted this report.{'\n\n'}
+        It is now included in Community Complaints and can be viewed in detail.
       </Text>
       {/* View detail */}
       {newId && (
@@ -124,7 +123,7 @@ function SuccessCard({ newId, onReset, onViewComplaints, onViewDetail }) {
           accessibilityRole="button"
           accessibilityLabel={`View complaint ${newId}`}
         >
-          <Text style={styles.successPrimaryBtnText}>View My Complaint →</Text>
+          <Text style={styles.successPrimaryBtnText}>View Report →</Text>
         </TouchableOpacity>
       )}
       {/* View all */}
@@ -132,9 +131,9 @@ function SuccessCard({ newId, onReset, onViewComplaints, onViewDetail }) {
         style={styles.successSecondaryBtn}
         onPress={onViewComplaints}
         accessibilityRole="button"
-        accessibilityLabel="Go to My Complaints"
+        accessibilityLabel="Go to Community Complaints"
       >
-        <Text style={styles.successSecondaryBtnText}>My Complaints</Text>
+        <Text style={styles.successSecondaryBtnText}>Community Complaints</Text>
       </TouchableOpacity>
       {/* Report another */}
       <TouchableOpacity
@@ -166,7 +165,9 @@ export default function ReportScreen() {
   const [errors,      setErrors]      = useState({});
   const [step,        setStep]        = useState('form');   // 'form' | 'review' | 'success'
   const [submitting,  setSubmitting]  = useState(false);
-  const [newId,       setNewId]       = useState(null);     // ID assigned after submit
+  const [submitError, setSubmitError] = useState('');
+  const [newId,       setNewId]       = useState(null);
+  const submittingRef = useRef(false);
 
   const descRef = useRef(null);
   const scrollRef = useRef(null);
@@ -174,14 +175,17 @@ export default function ReportScreen() {
   // ── Field change handlers (clear error on edit) ───────────────────────────
   const handleCategorySelect = (id) => {
     setCategory(id);
+    setSubmitError('');
     if (errors.category) setErrors((e) => ({ ...e, category: '' }));
   };
   const handleTitleChange = (v) => {
     setTitle(v);
+    setSubmitError('');
     if (errors.title) setErrors((e) => ({ ...e, title: '' }));
   };
   const handleDescChange = (v) => {
     setDescription(v);
+    setSubmitError('');
     if (errors.description) setErrors((e) => ({ ...e, description: '' }));
   };
 
@@ -195,32 +199,43 @@ export default function ReportScreen() {
       return;
     }
     setErrors({});
+    setSubmitError('');
     setStep('review');
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
-  // ── Submit — adds to local ComplaintsContext, navigable from My Complaints ──
-  // TODO Stage 5: replace addComplaint() with → POST /complaints, use returned ID
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    const fieldErrors = validate(category, title, description);
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      setStep('form');
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
+
+    submittingRef.current = true;
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1400)); // simulate network latency
-
-    // Resolve category metadata for the store
-    const cat = CATEGORIES.find((c) => c.id === category);
-    const id = addComplaint({
-      category,
-      categoryLabel: cat?.label ?? category,
-      categoryIcon:  cat?.icon  ?? '📌',
-      title:         title.trim(),
-      description:   description.trim(),
-      photoUri:      photo?.uri  ?? null,
-      location:      location    ?? null,
-    });
-
-    setNewId(id);
-    setSubmitting(false);
-    setStep('success');
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    setSubmitError('');
+    try {
+      const issue = await addComplaint({
+        category,
+        title: title.trim(),
+        description: description.trim(),
+        location,
+        photoUri: photo?.uri ?? null,
+      });
+      setNewId(issue.id);
+      setStep('success');
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    } catch (error) {
+      setSubmitError(
+        error?.message || 'Could not submit this report. Please try again.'
+      );
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   // ── Reset entire form ─────────────────────────────────────────────────────
@@ -231,6 +246,7 @@ export default function ReportScreen() {
     setPhoto(null);
     setLocation(null);
     setErrors({});
+    setSubmitError('');
     setNewId(null);
     setStep('form');
   };
@@ -360,7 +376,12 @@ export default function ReportScreen() {
                 location={location}
               />
 
-              {/* Submit (mock) */}
+              {!!submitError && (
+                <View style={styles.submitError} accessibilityRole="alert">
+                  <Text style={styles.submitErrorText}>{submitError}</Text>
+                </View>
+              )}
+
               <TouchableOpacity
                 style={[styles.primaryBtn, submitting && styles.primaryBtnDisabled]}
                 onPress={handleSubmit}
@@ -372,7 +393,7 @@ export default function ReportScreen() {
                 {submitting ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.primaryBtnText}>Submit Report (Demo)</Text>
+                  <Text style={styles.primaryBtnText}>Submit Report</Text>
                 )}
               </TouchableOpacity>
 
@@ -415,7 +436,7 @@ function MultilineInput({ value, onChange, editable, inputRef }) {
       autoCorrect
       editable={editable}
       accessibilityLabel="Issue description"
-      maxLength={500}
+      maxLength={5000}
     />
   );
 }
@@ -520,6 +541,15 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3, borderLeftColor: Colors.warning,
   },
   mockWarningText: { fontSize: 12, color: '#795548', lineHeight: 18 },
+  submitError: {
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#C62828',
+    padding: 12,
+    marginBottom: 12,
+  },
+  submitErrorText: { fontSize: 13, color: '#C62828', lineHeight: 19 },
 
   // Success card
   successCard: {

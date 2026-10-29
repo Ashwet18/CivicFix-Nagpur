@@ -8,7 +8,7 @@ import { ComplaintsProvider } from '../context/complaints';
  *
  * Provider tree (outermost → innermost):
  *   AuthProvider         — user session, login/logout
- *   ComplaintsProvider   — in-memory complaint store, shared by Report + Complaints + Detail screens
+ *   ComplaintsProvider   — community issue data shared by the report and feed screens
  *
  * Route groups registered in Stack:
  *   (auth)      — login & registration (no header)
@@ -26,7 +26,7 @@ export default function RootLayout() {
           {/* Main tab app */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-          {/* Complaint detail — dynamic route: /complaint/CF-001 etc. */}
+          {/* Complaint detail — dynamic route uses the backend integer ID. */}
           <Stack.Screen
             name="complaint/[id]"
             options={{

@@ -1,13 +1,12 @@
 /**
  * app/(tabs)/complaints.jsx
- * Stage 4 — My Complaints screen
+ * Community Complaints screen
  *
- * Displays the in-memory complaint list from ComplaintsContext.
- * Supports status filtering and navigates to the detail screen.
+ * Displays community issues from ComplaintsContext, with local status filters.
  */
 import {
   View, Text, StyleSheet, FlatList,
-  TouchableOpacity, SafeAreaView,
+  TouchableOpacity, SafeAreaView, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -15,17 +14,26 @@ import { useComplaints, STATUS } from '../../context/complaints';
 import Colors from '../../constants/colors';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const FILTERS = ['All', STATUS.SUBMITTED, STATUS.IN_PROGRESS, STATUS.RESOLVED];
+const FILTERS = [
+  'All',
+  STATUS.REPORTED,
+  STATUS.ACKNOWLEDGED,
+  STATUS.IN_PROGRESS,
+  STATUS.RESOLVED,
+  STATUS.REJECTED,
+];
 
 const STATUS_STYLE = {
-  [STATUS.SUBMITTED]:   { bg: '#E3F2FD', text: '#1565C0' },
+  [STATUS.REPORTED]:    { bg: '#E3F2FD', text: '#1565C0' },
+  [STATUS.ACKNOWLEDGED]: { bg: '#EDE7F6', text: '#5E35B1' },
   [STATUS.IN_PROGRESS]: { bg: '#FFF8E1', text: '#F57F17' },
   [STATUS.RESOLVED]:    { bg: '#E8F5E9', text: '#2E7D32' },
+  [STATUS.REJECTED]:    { bg: '#FFEBEE', text: '#C62828' },
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
-  const s = STATUS_STYLE[status] || STATUS_STYLE[STATUS.SUBMITTED];
+  const s = STATUS_STYLE[status] || STATUS_STYLE[STATUS.REPORTED];
   return (
     <View style={[styles.badge, { backgroundColor: s.bg }]}>
       <Text style={[styles.badgeText, { color: s.text }]}>{status}</Text>
@@ -55,9 +63,13 @@ function FilterBar({ active, onSelect }) {
 }
 
 function ComplaintCard({ item, onPress }) {
+  const location = item.location
+    ? `${item.location.latitude ?? '—'}, ${item.location.longitude ?? '—'}`
+    : null;
+
   return (
     <TouchableOpacity
-      style={[styles.card, !item.isSample && styles.cardUserCreated]}
+      style={styles.card}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`View complaint ${item.id}: ${item.title}`}
@@ -66,7 +78,7 @@ function ComplaintCard({ item, onPress }) {
       {/* Top row: category icon + id + badge */}
       <View style={styles.cardTop}>
         <View style={styles.cardTopLeft}>
-          <Text style={styles.cardIcon}>{item.categoryIcon}</Text>
+          <Text style={styles.cardIcon}>{item.categoryIcon ?? '📌'}</Text>
           <View>
             <Text style={styles.cardId}>{item.id}</Text>
             <Text style={styles.cardCategory}>{item.categoryLabel}</Text>
@@ -81,33 +93,44 @@ function ComplaintCard({ item, onPress }) {
       {/* Footer row */}
       <View style={styles.cardFooter}>
         <Text style={styles.cardDate}>📅 {item.date}</Text>
-        {item.location && (
-          <Text style={styles.cardLocation}>
-            📍 {item.location.latitude.toFixed(4)}, {item.location.longitude.toFixed(4)}
-          </Text>
-        )}
+        {!!location && <Text style={styles.cardLocation}>📍 {location}</Text>}
       </View>
-
-      {/* User-created indicator */}
-      {!item.isSample && (
-        <View style={styles.userTag}>
-          <Text style={styles.userTagText}>✦ Submitted this session</Text>
-        </View>
-      )}
     </TouchableOpacity>
   );
 }
 
-function EmptyState({ filter }) {
+function EmptyState({ filter, loading, error, onRetry }) {
   return (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyIcon}>📭</Text>
-      <Text style={styles.emptyTitle}>No complaints found</Text>
-      <Text style={styles.emptySubtitle}>
-        {filter === 'All'
-          ? 'You have not submitted any complaints yet.\nTap "Report" to get started.'
-          : `No complaints with status "${filter}".`}
-      </Text>
+      {loading ? (
+        <>
+          <ActivityIndicator color={Colors.primary} size="large" />
+          <Text style={styles.emptySubtitle}>Loading community complaints…</Text>
+        </>
+      ) : error ? (
+        <>
+          <Text style={styles.emptyIcon}>⚠️</Text>
+          <Text style={styles.emptyTitle}>Could not load complaints</Text>
+          <Text style={styles.emptySubtitle}>{error.message}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={onRetry}
+            accessibilityRole="button"
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <Text style={styles.emptyIcon}>📭</Text>
+          <Text style={styles.emptyTitle}>No complaints found</Text>
+          <Text style={styles.emptySubtitle}>
+            {filter === 'All'
+              ? 'There are no community reports yet.\nTap "Report" to get started.'
+              : `No community complaints with status "${filter}".`}
+          </Text>
+        </>
+      )}
     </View>
   );
 }
@@ -115,7 +138,13 @@ function EmptyState({ filter }) {
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function ComplaintsScreen() {
   const router = useRouter();
-  const { complaints } = useComplaints();
+  const {
+    complaints,
+    loading,
+    refreshing,
+    error,
+    refreshComplaints,
+  } = useComplaints();
   const [activeFilter, setActiveFilter] = useState('All');
 
   const filtered = activeFilter === 'All'
@@ -125,8 +154,18 @@ export default function ComplaintsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Summary counts */}
+      <Text style={styles.screenTitle}>Community Complaints</Text>
+      <Text style={styles.communityDescription}>
+        Showing community-wide reports; the API does not filter reports by user.
+      </Text>
       <View style={styles.summaryRow}>
-        {[STATUS.SUBMITTED, STATUS.IN_PROGRESS, STATUS.RESOLVED].map((s) => {
+        {[
+          STATUS.REPORTED,
+          STATUS.ACKNOWLEDGED,
+          STATUS.IN_PROGRESS,
+          STATUS.RESOLVED,
+          STATUS.REJECTED,
+        ].map((s) => {
           const count = complaints.filter((c) => c.status === s).length;
           const st = STATUS_STYLE[s];
           return (
@@ -147,16 +186,31 @@ export default function ComplaintsScreen() {
       {/* Filter bar */}
       <FilterBar active={activeFilter} onSelect={setActiveFilter} />
 
-      {/* Mock data notice */}
-      <View style={styles.mockNotice}>
-        <Text style={styles.mockNoticeText}>
-          ⚠ Demo data — resets on app restart. Real data connects in Stage 5.
-        </Text>
-      </View>
+      {!!error && complaints.length > 0 && (
+        <View style={styles.errorBanner} accessibilityRole="alert">
+          <Text style={styles.errorText}>
+            Could not refresh complaints. The displayed community data may be outdated. {error.message}
+          </Text>
+          <TouchableOpacity
+            style={styles.retryLink}
+            onPress={() => refreshComplaints().catch(() => {})}
+            accessibilityRole="button"
+          >
+            <Text style={styles.retryLinkText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* List */}
       <FlatList
         data={filtered}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => refreshComplaints().catch(() => {})}
+            colors={[Colors.primary]}
+          />
+        }
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ComplaintCard
@@ -164,7 +218,14 @@ export default function ComplaintsScreen() {
             onPress={() => router.push(`/complaint/${item.id}`)}
           />
         )}
-        ListEmptyComponent={<EmptyState filter={activeFilter} />}
+        ListEmptyComponent={
+          <EmptyState
+            filter={activeFilter}
+            loading={loading}
+            error={complaints.length === 0 ? error : null}
+            onRetry={() => refreshComplaints().catch(() => {})}
+          />
+        }
         contentContainerStyle={[
           styles.listContent,
           filtered.length === 0 && styles.listContentEmpty,
@@ -178,17 +239,32 @@ export default function ComplaintsScreen() {
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  screenTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+  },
+  communityDescription: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
 
   // Summary strip
   summaryRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 4,
   },
   summaryCard: {
-    flex: 1, borderRadius: 10,
+    flex: 1, flexBasis: '28%', minWidth: 72, borderRadius: 10,
     paddingVertical: 10, alignItems: 'center',
   },
   summaryCount: { fontSize: 22, fontWeight: '800', lineHeight: 26 },
@@ -215,13 +291,15 @@ const styles = StyleSheet.create({
   filterChipText:       { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
   filterChipTextActive: { color: '#fff', fontWeight: '700' },
 
-  // Mock notice
-  mockNotice: {
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginHorizontal: 16, marginBottom: 8,
-    backgroundColor: '#FFF8E1',
-    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
   },
-  mockNoticeText: { fontSize: 11, color: '#795548' },
+  errorText: { fontSize: 12, color: '#C62828', flex: 1, marginRight: 8 },
 
   // List
   listContent:      { paddingHorizontal: 16, paddingBottom: 32 },
@@ -235,10 +313,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.07, shadowRadius: 4, elevation: 2,
-  },
-  cardUserCreated: {
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.accent,
   },
   cardTop: {
     flexDirection: 'row',
@@ -262,16 +336,6 @@ const styles = StyleSheet.create({
   badge: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
   badgeText: { fontSize: 11, fontWeight: '600' },
 
-  // User-created tag
-  userTag: {
-    marginTop: 10,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 6,
-    paddingHorizontal: 10, paddingVertical: 4,
-    alignSelf: 'flex-start',
-  },
-  userTagText: { fontSize: 10, color: Colors.accent, fontWeight: '700' },
-
   // Empty state
   emptyState: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
@@ -280,4 +344,14 @@ const styles = StyleSheet.create({
   emptyIcon:     { fontSize: 52, marginBottom: 16 },
   emptyTitle:    { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   emptySubtitle: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+  },
+  retryButtonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  retryLink: { padding: 4 },
+  retryLinkText: { color: Colors.primary, fontSize: 13, fontWeight: '700' },
 });

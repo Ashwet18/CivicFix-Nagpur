@@ -40,9 +40,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="complaints"
         options={{
-          title: 'My Complaints',
+          title: 'Community Complaints',
           tabBarLabel: 'Complaints',
-          headerTitle: 'My Complaints',
+          headerTitle: 'Community Complaints',
         }}
       />
     </Tabs>

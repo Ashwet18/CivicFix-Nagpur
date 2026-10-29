@@ -81,7 +81,7 @@ export default function LoginScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Sign In</Text>
           <Text style={styles.cardSubtitle}>
-            Use your registered account to continue.
+            Demo-only local sign-in. Credentials are not sent to or checked by the backend.
           </Text>
 
           {/* Server / mock error banner */}
@@ -135,13 +135,10 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Mock hint */}
+          {/* Authentication limitation */}
           <View style={styles.mockHint}>
             <Text style={styles.mockHintText}>
-              🧪 Dev mock — use{' '}
-              <Text style={styles.mockCred}>citizen@civicfix.dev</Text>
-              {' '}/ {' '}
-              <Text style={styles.mockCred}>Demo@1234</Text>
+              This creates an in-memory demo session only. Do not use a real password.
             </Text>
           </View>
         </View>
@@ -268,11 +265,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
-  mockCred: {
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-  },
-
   // Footer
   footer: {
     flexDirection: 'row',

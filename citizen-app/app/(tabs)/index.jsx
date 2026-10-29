@@ -1,12 +1,11 @@
 /**
  * app/(tabs)/index.jsx
- * Home screen — Stage 5 update
+ * Home screen — live community issue data
  *
  * Statistics and recent complaints are now derived from ComplaintsContext
  * instead of hardcoded values. The UI design is unchanged.
  *
- * Data source: in-memory demo only (resets on app restart).
- * Real backend integration is planned for Stage 5 backend wiring.
+ * Statistics and recent reports are loaded from the CivicFix API.
  */
 import {
   View,
@@ -15,15 +14,19 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useComplaints, STATUS } from '../../context/complaints';
 
 // ── Status badge colour map ───────────────────────────────────────────────────
 const STATUS_COLORS = {
-  [STATUS.SUBMITTED]:   { bg: '#E3F2FD', text: '#1565C0' },
+  [STATUS.REPORTED]:    { bg: '#E3F2FD', text: '#1565C0' },
+  [STATUS.ACKNOWLEDGED]: { bg: '#EDE7F6', text: '#5E35B1' },
   [STATUS.IN_PROGRESS]: { bg: '#FFF8E1', text: '#F57F17' },
   [STATUS.RESOLVED]:    { bg: '#E8F5E9', text: '#2E7D32' },
+  [STATUS.REJECTED]:    { bg: '#FFEBEE', text: '#C62828' },
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -40,14 +43,18 @@ function WelcomeBanner() {
 
 /**
  * Shows live counts derived from ComplaintsContext.
- * @param {{ submitted:number, inProgress:number, resolved:number }} props
+ * @param {{ submitted:number, inProgress:number, resolved:number, rejected:number }} props
  */
-function QuickStats({ submitted, inProgress, resolved }) {
+function QuickStats({ reported, acknowledged, inProgress, resolved, rejected }) {
   return (
     <View style={styles.statsRow}>
       <View style={[styles.statCard, { backgroundColor: '#E3F2FD' }]}>
-        <Text style={styles.statNumber}>{submitted}</Text>
-        <Text style={styles.statLabel}>Submitted</Text>
+        <Text style={styles.statNumber}>{reported}</Text>
+        <Text style={styles.statLabel}>Reported</Text>
+      </View>
+      <View style={[styles.statCard, { backgroundColor: '#EDE7F6' }]}>
+        <Text style={styles.statNumber}>{acknowledged}</Text>
+        <Text style={styles.statLabel}>Acknowledged</Text>
       </View>
       <View style={[styles.statCard, { backgroundColor: '#FFF8E1' }]}>
         <Text style={styles.statNumber}>{inProgress}</Text>
@@ -57,12 +64,16 @@ function QuickStats({ submitted, inProgress, resolved }) {
         <Text style={styles.statNumber}>{resolved}</Text>
         <Text style={styles.statLabel}>Resolved</Text>
       </View>
+      <View style={[styles.statCard, { backgroundColor: '#FFEBEE' }]}>
+        <Text style={styles.statNumber}>{rejected}</Text>
+        <Text style={styles.statLabel}>Rejected</Text>
+      </View>
     </View>
   );
 }
 
 function ComplaintCard({ item }) {
-  const colors = STATUS_COLORS[item.status] || STATUS_COLORS[STATUS.SUBMITTED];
+  const colors = STATUS_COLORS[item.status] || STATUS_COLORS[STATUS.REPORTED];
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -86,20 +97,37 @@ function ComplaintCard({ item }) {
 // ── Main Home Screen ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const router = useRouter();
-  const { complaints } = useComplaints();
+  const {
+    complaints,
+    loading,
+    refreshing,
+    error,
+    refreshComplaints,
+  } = useComplaints();
 
   // ── Derive stats from live context data ─────────────────────────────────
-  const submitted   = complaints.filter((c) => c.status === STATUS.SUBMITTED).length;
+  const reported    = complaints.filter((c) => c.status === STATUS.REPORTED).length;
+  const acknowledged = complaints.filter((c) => c.status === STATUS.ACKNOWLEDGED).length;
   const inProgress  = complaints.filter((c) => c.status === STATUS.IN_PROGRESS).length;
   const resolved    = complaints.filter((c) => c.status === STATUS.RESOLVED).length;
+  const rejected    = complaints.filter((c) => c.status === STATUS.REJECTED).length;
 
   // ── Most recent 3 complaints for the preview list ───────────────────────
-  // complaints[] is ordered newest-first (addComplaint prepends)
+  // The API returns newest-first; newly submitted reports are prepended after confirmation.
   const recentComplaints = complaints.slice(0, 3);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => refreshComplaints().catch(() => {})}
+            colors={['#1565C0']}
+          />
+        }
+      >
         {/* Welcome banner */}
         <WelcomeBanner />
 
@@ -114,27 +142,44 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* Quick stats — live from context */}
-        <Text style={styles.sectionTitle}>My Activity</Text>
+        <Text style={styles.sectionTitle}>Community Activity</Text>
         <QuickStats
-          submitted={submitted}
+          reported={reported}
+          acknowledged={acknowledged}
           inProgress={inProgress}
           resolved={resolved}
+          rejected={rejected}
         />
 
-        {/* Demo data notice */}
+        {/* Community feed notice */}
         <View style={styles.demoNotice}>
           <Text style={styles.demoNoticeText}>
-            ⚠ Stats reflect in-memory demo data only — resets on app restart
+            These reports and counts are community-wide; the API does not filter reports by user.
           </Text>
         </View>
 
-        {/* Recent complaints list — live from context */}
-        <Text style={styles.sectionTitle}>Recent Complaints</Text>
+        <Text style={styles.sectionTitle}>Recent Community Complaints</Text>
 
-        {recentComplaints.length === 0 ? (
+        {loading && complaints.length === 0 ? (
+          <View style={styles.emptyRecent}>
+            <ActivityIndicator color="#1565C0" />
+            <Text style={styles.emptyRecentText}>Loading community reports…</Text>
+          </View>
+        ) : error && complaints.length === 0 ? (
+          <View style={styles.emptyRecent}>
+            <Text style={styles.emptyRecentText}>{error.message}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => refreshComplaints().catch(() => {})}
+              accessibilityRole="button"
+            >
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        ) : recentComplaints.length === 0 ? (
           <View style={styles.emptyRecent}>
             <Text style={styles.emptyRecentText}>
-              No complaints yet. Tap "Report an Issue" to get started.
+              No community reports yet. Tap "Report an Issue" to get started.
             </Text>
           </View>
         ) : (
@@ -152,15 +197,28 @@ export default function HomeScreen() {
         )}
 
         {/* View all link */}
+        {!!error && complaints.length > 0 && (
+          <View style={styles.inlineError}>
+            <Text style={styles.inlineErrorText}>{error.message}</Text>
+            <TouchableOpacity
+              style={styles.retryLink}
+              onPress={() => refreshComplaints().catch(() => {})}
+              accessibilityRole="button"
+            >
+              <Text style={styles.retryLinkText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {complaints.length > 0 && (
           <TouchableOpacity
             style={styles.viewAllButton}
             onPress={() => router.push('/(tabs)/complaints')}
             accessibilityRole="button"
-            accessibilityLabel="View all my complaints"
+            accessibilityLabel="View all community complaints"
           >
             <Text style={styles.viewAllText}>
-              View All {complaints.length} Complaints →
+              View All {complaints.length} Community Complaints →
             </Text>
           </TouchableOpacity>
         )}
@@ -226,12 +284,15 @@ const styles = StyleSheet.create({
   // Stats row
   statsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 10,
     gap: 10,
   },
   statCard: {
     flex: 1,
+    flexBasis: '28%',
+    minWidth: 74,
     borderRadius: 10,
     padding: 14,
     alignItems: 'center',
@@ -320,6 +381,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  retryButton: {
+    marginTop: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: '#1565C0',
+  },
+  retryButtonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  retryLink: { padding: 4 },
+  retryLinkText: { color: '#1565C0', fontSize: 13, fontWeight: '700' },
+  inlineError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF5F5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  inlineErrorText: { color: '#C62828', fontSize: 12, flex: 1, marginRight: 10 },
   // View all
   viewAllButton: {
     marginTop: 8,
