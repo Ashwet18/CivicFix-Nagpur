@@ -18,6 +18,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/complaints" element={<Complaints />} />
             <Route path="/departments" element={<Departments />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
       </div>
