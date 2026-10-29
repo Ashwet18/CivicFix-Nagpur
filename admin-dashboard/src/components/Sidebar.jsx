@@ -37,7 +37,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className={styles.sidebarFooter}>
-        <span className={styles.footerVersion}>v1.0.0 — Stage 1</span>
+        <span className={styles.footerVersion}>CivicFix Admin</span>
       </div>
     </aside>
   );

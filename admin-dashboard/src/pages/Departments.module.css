@@ -4,6 +4,39 @@
   gap: 24px;
 }
 
+.unavailable {
+  max-width: 900px;
+  padding: 20px 24px;
+  border-left: 4px solid #F57F17;
+  border-radius: 8px;
+  background: #FFF8E1;
+  color: #5D4037;
+  line-height: 1.6;
+}
+
+.unavailableTitle {
+  margin-bottom: 10px;
+  color: #5D4037;
+  font-size: 18px;
+}
+
+.unavailable h3 {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.unavailable ul {
+  margin: 8px 0 0 20px;
+}
+
+.unavailable li + li {
+  margin-top: 6px;
+}
+
+.unavailable code {
+  overflow-wrap: anywhere;
+}
+
 .intro {
   font-size: 14px;
   color: #666;
