@@ -47,6 +47,36 @@ class IssueCreate(BaseModel):
         max_length=500,
         description="URL reference to issue image"
     )
+
+    @field_validator("title", "description", mode="before")
+    @classmethod
+    def strip_and_normalize_text(cls, value: object) -> object:
+        """Normalize whitespace in text fields to avoid inconsistent inputs."""
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("category", "severity", mode="before")
+    @classmethod
+    def normalize_optional_strings(cls, value: object) -> object:
+        """Trim optional string values and treat blank strings as unset."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip()
+            return None if not normalized else normalized.lower()
+        return value
+
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def normalize_image_url(cls, value: object) -> object:
+        """Trim image URLs and treat blank values as unset."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip()
+            return None if not normalized else normalized
+        return value
     
     model_config = {
         "json_schema_extra": {
@@ -106,6 +136,36 @@ class IssueUpdate(BaseModel):
         max_length=500,
         description="Updated image URL"
     )
+
+    @field_validator("title", "description", mode="before")
+    @classmethod
+    def strip_text_fields(cls, value: object) -> object:
+        """Normalize whitespace in text fields to avoid inconsistent inputs."""
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("category", "severity", mode="before")
+    @classmethod
+    def normalize_optional_text(cls, value: object) -> object:
+        """Trim optional string values and treat blank strings as unset."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip()
+            return None if not normalized else normalized.lower()
+        return value
+
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def normalize_image_url(cls, value: object) -> object:
+        """Trim image URLs and treat blank values as unset."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip()
+            return None if not normalized else normalized
+        return value
 
 
 class IssueStatusUpdate(BaseModel):

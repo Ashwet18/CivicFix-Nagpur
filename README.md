@@ -13,11 +13,11 @@ Citizens often struggle to report civic issues effectively, and municipal author
 - Tracking issue resolution status and resolution progress
 
 ### Key Features
-- **Issue Reporting**: Citizens can report civic issues with descriptions, images, and location data
+- **Issue Reporting**: Citizens can report issues with descriptions and location data; photo selection is local-only until an upload endpoint is implemented
 - **AI-Powered Classification**: Automatic categorization of issues using a local Ollama model — no API key required (roads, sanitation, electricity, water, etc.)
 - **Severity Estimation**: ML-based severity assessment to prioritize critical issues
 - **Duplicate Detection**: Intelligent detection of similar/duplicate issue reports using location and text similarity
-- **Resolution Tracking**: Real-time tracking of issue status and resolution progress
+- **Resolution Tracking**: View the current issue status and refresh for updates
 - **Admin Dashboard**: Management interface for municipal authorities
 - **Analytics**: Insights and trends in civic issue reporting and resolution
 
@@ -88,9 +88,9 @@ CivicFix-Nagpur/
 
 ## Prerequisites
 - **Python 3.11 or newer** (backend)
-- **Node.js v18+** (frontend)
+- **Node.js supported by Expo SDK 58** (citizen app; Node 22.13+, 24.3+, 26+, or later)
 - **Git**
-- **PostgreSQL** (to be configured later)
+- **PostgreSQL** (backend database)
 
 ## Setup Instructions
 
@@ -100,18 +100,27 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 Copy-Item .env.example .env
+# Set DATABASE_URL in .env to your PostgreSQL connection string.
+# Create the civicfix_nagpur database if it does not already exist.
+psql -U postgres -c "CREATE DATABASE civicfix_nagpur;"
+python -m app.db.init_db
+
 # Edit .env if Ollama runs on a non-default URL (default: http://localhost:11434)
 
 # Start the Ollama server and pull the classification model (one-time setup)
 # 1. Install Ollama: https://ollama.com/download
 # 2. ollama pull qwen2.5:3b
 # 3. ollama serve
-
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 API available at http://localhost:8000 | Swagger docs: http://localhost:8000/docs
 
-**Configuration**: See `.env.example` for all options. See [AI Classification Documentation](docs/AI_CLASSIFICATION.md) for Ollama setup details.
+The database initialization command creates missing tables; it does not delete
+existing data. For production schema changes, use database migrations.
+Development CORS is enabled only when `ENVIRONMENT=development` and uses
+`ALLOWED_ORIGINS`. Defaults include the local dashboard and Expo web origins.
+**Configuration**: See `.env.example` for all options. See
+[AI Classification Documentation](docs/AI_CLASSIFICATION.md) for Ollama setup details.
 
 ### Citizen App (Dev2)
 ```powershell
@@ -131,11 +140,16 @@ Opens at http://localhost:5174
 
 ## API Endpoints
 
-### Current Endpoints
-| Method | Endpoint   | Description                    |
-|--------|-----------|--------------------------------|
-| GET    | `/`       | Welcome message and API status |
-| GET    | `/health` | Health check for monitoring    |
+### Implemented Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Welcome message and API status |
+| GET | `/health` | Application and database health check |
+| POST | `/api/v1/issues` | Create an issue report |
+| GET | `/api/v1/issues` | List issues; supports pagination and status/category filters |
+| GET | `/api/v1/issues/{issue_id}` | Get issue details |
+| PATCH | `/api/v1/issues/{issue_id}` | Partially update issue fields |
+| PATCH | `/api/v1/issues/{issue_id}/status` | Update issue status |
 
 ### ML Endpoints
 | Method | Endpoint | Description |
@@ -146,13 +160,8 @@ Opens at http://localhost:5174
 
 **See [AI Classification Documentation](docs/AI_CLASSIFICATION.md) for Ollama setup and API details.**
 
-### Planned Endpoints (Dev1)
-- `POST /api/v1/issues` — Create a new issue report
-- `GET /api/v1/issues` — List all issues with filtering
-- `GET /api/v1/issues/{id}` — Get issue details
-- `PATCH /api/v1/issues/{id}` — Update issue status
-- `POST /api/v1/auth/login` — User authentication
-- `GET /api/v1/analytics` — Issue analytics and trends
+Authentication, user-specific issue ownership, image uploads, and analytics
+endpoints are not currently implemented.
 
 ## Development Workflow
 

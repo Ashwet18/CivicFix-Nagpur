@@ -80,9 +80,11 @@ def list_issues(
     
     # Apply filters
     if status:
-        query = query.where(Issue.status == status.lower().strip())
+        normalized_status = status.lower().strip()
+        query = query.where(func.lower(Issue.status) == normalized_status)
     if category:
-        query = query.where(Issue.category == category)
+        normalized_category = category.strip().lower()
+        query = query.where(func.lower(Issue.category) == normalized_category)
     
     # Get total count before pagination
     count_query = select(func.count()).select_from(query.subquery())
