@@ -79,6 +79,36 @@ class TestRootEndpoint:
         assert response.headers["content-type"] == "application/json"
 
 
+class TestCORSMiddleware:
+    """Tests for configured development web origins."""
+
+    def test_allows_local_development_origin_without_credentials(self):
+        response = client.options(
+            "/api/v1/issues",
+            headers={
+                "Origin": "http://localhost:8081",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == "http://localhost:8081"
+        assert "access-control-allow-credentials" not in response.headers
+
+    def test_rejects_unconfigured_origin(self):
+        response = client.options(
+            "/api/v1/issues",
+            headers={
+                "Origin": "http://untrusted.example",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "access-control-allow-origin" not in response.headers
+
+
 class TestHealthEndpoint:
     """Tests for the health check endpoint."""
     

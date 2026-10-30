@@ -1,11 +1,13 @@
 """FastAPI application entry point for CivicFix-Nagpur."""
 
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import Dict
 from app.db.session import get_db
 from app.api.routes import issues_router, ml_router
+from app.core.config import settings
 
 app = FastAPI(
     title="CivicFix-Nagpur API",
@@ -16,6 +18,15 @@ app = FastAPI(
     ),
     version="0.1.0",
 )
+
+if settings.is_development:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.ALLOWED_ORIGINS,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PATCH"],
+        allow_headers=["Content-Type"],
+    )
 
 # Register API routers
 app.include_router(issues_router)
