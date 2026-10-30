@@ -25,13 +25,23 @@ A QR code will appear in the terminal.
 - **On a browser:** press `w` to open the web version.
 - **Android emulator:** press `a` (requires Android Studio).
 
-### Backend API URL (Android emulator)
+### Backend API URL
 
-Copy `.env.example` to `.env.local` in `citizen-app`; the example uses
-`EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8000`, the Android emulator address
-for a backend running on the development computer. Ensure the backend is
-reachable on port 8000, then restart Expo after changing `.env.local`.
-`EXPO_PUBLIC_` values are bundled into the app, so do not put secrets there.
+Copy `.env.example` to `.env.local` in `citizen-app` and set
+`EXPO_PUBLIC_API_BASE_URL` to the same FastAPI server used by the admin
+dashboard. The hostname depends on where the citizen app runs:
+
+- Android emulator: `http://10.0.2.2:8000`
+- iOS simulator or web browser on the development computer:
+  `http://localhost:8000`
+- Physical device: `http://<computer-LAN-IP>:8000`
+
+The admin dashboard defaults to `http://localhost:8000`; the Android emulator
+uses `10.0.2.2` as the equivalent host address. Ensure the backend is reachable
+on port 8000 and permits browser origins `http://localhost:5174` (admin) and
+`http://localhost:8081` (Expo web) in `ALLOWED_ORIGINS`. Restart Expo after
+changing `.env.local`. `EXPO_PUBLIC_` values are bundled into the app, so do
+not put secrets there.
 
 ### Backend integration and current limitations
 
@@ -60,6 +70,7 @@ reachable on port 8000, then restart Expo after changing `.env.local`.
 
 ```powershell
 npm test
+npx expo export --platform web
 npx expo export --platform android
 ```
 
