@@ -6,6 +6,99 @@
 
 ---
 
+## Runtime Verification Results
+
+> Last verified: integration branch `fa7876f` / runtime test run 2026-10-30
+
+### Backend tests
+
+| Suite | Passed | Failed | Notes |
+|---|---|---|---|
+| `test_health.py` | 8 | 0 | CORS, root, health check |
+| `test_issues.py` | 40 | 0 | Full CRUD |
+| `test_ml_predictions.py` | 24 | 0 | ML endpoint contracts |
+| `test_ai_classification.py` | 41 | 0 | Ollama service (mocked) |
+| `test_duplicate_detection.py` | 22 | 0 | Requires scikit-learn ≥1.3 (now installed) |
+| `test_api_integration.py` | 54 | 0 | New: full endpoint + cross-frontend contract |
+| `runtime_flow_test.py` | 1 | 0 | 15-step citizen→admin→citizen flow |
+| **Total** | **179** | **0** | scikit-learn 1.9.1 installed; all pass |
+
+### SQLite API integration — endpoint results
+
+All tests use the same in-memory SQLite override as the existing test suite.
+No PostgreSQL credentials are required to run these tests.
+
+| Endpoint | Method | Result | Detail |
+|---|---|---|---|
+| `/api/v1/issues` | POST | ✅ PASS | 201 returned; default status = `reported`; integer id assigned |
+| `/api/v1/issues` | POST | ✅ PASS | 422 on missing title or description |
+| `/api/v1/issues` | POST | ✅ PASS | 422 on coordinates out of range |
+| `/api/v1/issues` | POST | ✅ PASS | Whitespace stripped from title; blank category stored as null |
+| `/api/v1/issues` | POST | ✅ PASS | Category lowercased before storage |
+| `/api/v1/issues` | GET | ✅ PASS | Empty list returns total=0, items=[] |
+| `/api/v1/issues` | GET | ✅ PASS | Pagination: skip/limit/total consistent |
+| `/api/v1/issues` | GET | ✅ PASS | Ordered newest-first |
+| `/api/v1/issues?status=reported` | GET | ✅ PASS | Status filter works; case-insensitive |
+| `/api/v1/issues?category=roads` | GET | ✅ PASS | Category filter works; case-insensitive |
+| `/api/v1/issues?limit=0` | GET | ✅ PASS | 422 returned |
+| `/api/v1/issues?skip=-1` | GET | ✅ PASS | 422 returned |
+| `/api/v1/issues/{id}` | GET | ✅ PASS | Returns all IssueResponse fields |
+| `/api/v1/issues/99999` | GET | ✅ PASS | 404 with issue id in detail |
+| `/api/v1/issues/0` | GET | ✅ PASS | 422 returned |
+| `/api/v1/issues/{id}/status` | PATCH | ✅ PASS | All 5 valid statuses accepted |
+| `/api/v1/issues/{id}/status` | PATCH | ✅ PASS | Case-insensitive input normalised |
+| `/api/v1/issues/{id}/status` | PATCH | ✅ PASS | Invalid status → 422 |
+| `/api/v1/issues/{id}/status` | PATCH | ✅ PASS | Missing field → 422 |
+| `/api/v1/issues/99999/status` | PATCH | ✅ PASS | 404 returned |
+| `/api/v1/issues/{id}` | PATCH | ✅ PASS | Partial field update; empty body → 200 unchanged |
+| Full lifecycle | — | ✅ PASS | citizen POST → admin PATCH×3 → citizen GET sees `resolved` |
+
+### Cross-frontend contract
+
+| Check | Result |
+|---|---|
+| IssueResponse has all fields both frontends read | ✅ PASS |
+| Pagination shape (`items`, `total`, `skip`, `limit`) correct | ✅ PASS |
+| All 5 status values round-trip correctly | ✅ PASS |
+| citizen POST → admin GET sees same record | ✅ PASS |
+| Admin status update → citizen refresh sees new status | ✅ PASS |
+| Category filter works for admin dashboard | ✅ PASS |
+
+### Frontend builds
+
+| Check | Result | Detail |
+|---|---|---|
+| Citizen unit tests | ✅ 8/8 passed | `node --test tests/issues.test.cjs` |
+| Admin Vite production build | ✅ 46 modules, 2.03s | `npm run build` in `admin-dashboard/` |
+| Citizen Android export | ✅ 1169 modules, 2.5 MB .hbc | `npx expo export --platform android` |
+
+### PostgreSQL — BLOCKED (setup required)
+
+**Status:** FastAPI starts successfully. Database connection fails at runtime.
+
+**Root cause:** `DATABASE_URL` in `.env` contains placeholder credentials
+(`user:password`). The PostgreSQL 17 service is running at `localhost:5432`
+but the placeholder credentials are rejected.
+
+**This is a manual setup step, not a code defect.**
+
+Required actions to unblock:
+1. Open `.env` in a text editor (not committed; not visible to Kiro)
+2. Set `DATABASE_URL` to your actual PostgreSQL connection string:
+   ```
+   DATABASE_URL=postgresql://<your_user>:<your_password>@localhost:5432/civicfix_nagpur
+   ```
+3. If the database does not yet exist:
+   ```powershell
+   & "D:\sql\bin\psql.exe" -U <your_user> -c "CREATE DATABASE civicfix_nagpur;"
+   python -m app.db.init_db
+   ```
+4. Restart uvicorn — `GET /health` will return `"database": "connected"`
+
+**Note:** PostgreSQL 17 binaries are at `D:\sql\bin\` on this machine.
+
+---
+
 ## Overview
 
 This document covers setup, configuration, and known limitations for both
@@ -263,23 +356,12 @@ as "Not provided by API" so it is visible but not misleading.
   `PATCH /api/v1/issues/{id}/assign`
 - Admin dashboard: replace static label with a department dropdown
 
-### 5.4 scikit-learn missing — 3 backend tests fail
+### 5.4 scikit-learn — resolved ✅
 
-**Impact:** 3 of 124 backend tests fail. API and frontend are unaffected.
-
-`tests/test_duplicate_detection.py` contains 3 tests that require
-`scikit-learn` for text similarity scoring. `scikit-learn` is not in
-`requirements.txt` and is not installed.
-
-**Root cause:** Dev1 ML feature; not a Dev2 regression.
-
-**Failing tests:**
-- `TestDuplicateDetectorLocationBased::test_detect_duplicates_within_5_meters`
-- `TestDuplicateDetectorNoLocation::test_no_location_data_provided`
-- `TestDuplicateDetectorTextSimilarity::test_high_text_similarity_ranked_higher`
-
-**Fix:** Add `scikit-learn>=1.3,<2.0` to `requirements.txt` and run
-`pip install -r requirements.txt`.
+`scikit-learn>=1.3.0` is declared in `requirements.txt` and version 1.9.1
+is installed in the venv. All 3 previously failing duplicate-detection tests
+now pass. Run `pip install -r requirements.txt` on a fresh install to pick
+it up.
 
 ### 5.5 Status history — not stored by backend
 
